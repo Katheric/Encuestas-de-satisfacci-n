@@ -1040,6 +1040,17 @@ export default function App() {
     c.companyName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+    if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-4 border-orange-200 border-t-[#fa5800] rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-gray-500">Cargando información...</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
@@ -1250,13 +1261,21 @@ export default function App() {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <h3 className="font-bold text-lg">Gestión de Clientes</h3>
-                    <Button onClick={() => {
-                      setEditingClient(null);
-                      setNewClient({ companyName: '', services: [], activeModules: [], evaluationRange: { start: '', end: '' }, evaluationHistory: [], logoUrl: '' });
-                      setIsAddingClient(true);
-                    }}>
-                      <Plus size={18} /> Nuevo Cliente
-                    </Button>
+<Button onClick={() => {
+  setEditingClient(null);
+  setNewClient({
+    companyName: '',
+    services: [],
+    activeModules: [],
+    evaluationRange: { start: '', end: '' },
+    evaluationHistory: [],
+    logoUrl: '',
+    logoFileId: ''
+  });
+  setIsAddingClient(true);
+}}>
+  <Plus size={18} /> Nuevo Cliente
+</Button>
                   </div>
 
                   {isAddingClient && (
@@ -1289,26 +1308,59 @@ export default function App() {
                                 </div>
                                 <label className="cursor-pointer bg-white px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-2">
                                   <Upload size={16} /> Subir Logo
-                                  <input 
-                                    type="file" 
-                                    className="hidden" 
-                                    accept="image/*"
-                                    onChange={e => {
-                                      const file = e.target.files?.[0];
-                                      if (file) {
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => {
-                                          setNewClient({...newClient, logoUrl: reader.result as string});
-                                        };
-                                        reader.readAsDataURL(file);
-                                      }
-                                    }}
-                                  />
+<input 
+  type="file" 
+  className="hidden" 
+  accept="image/*"
+  onChange={async e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsSaving(true);
+
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const result = await uploadLogo({
+            clientId: editingClient?.id || '',
+            fileName: file.name,
+            mimeType: file.type || 'image/png',
+            base64: reader.result as string,
+          });
+
+          setNewClient(prev => ({
+            ...prev,
+            logoUrl: result.fileUrl,
+            logoFileId: result.fileId,
+          }));
+        } catch (error) {
+          console.error(error);
+          alert('No se pudo subir el logo.');
+        } finally {
+          setIsSaving(false);
+        }
+      };
+
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error(error);
+      setIsSaving(false);
+      alert('No se pudo procesar el archivo.');
+    }
+  }}
+/>
                                 </label>
                                 {newClient.logoUrl && (
                                   <button 
                                     type="button" 
-                                    onClick={() => setNewClient({...newClient, logoUrl: ''})}
+                                    onClick={() =>
+  setNewClient(prev => ({
+    ...prev,
+    logoUrl: '',
+    logoFileId: ''
+  }))
+}
                                     className="text-xs text-red-500 font-bold hover:underline"
                                   >
                                     Eliminar
@@ -1418,9 +1470,13 @@ export default function App() {
                           </div>
                         </div>
 
-                        <Button type="submit" variant="secondary" className="w-full py-3">
-                          {editingClient ? 'Actualizar Cliente' : 'Guardar Cliente'}
-                        </Button>
+<Button type="submit" variant="secondary" className="w-full py-3" disabled={isSaving}>
+  {isSaving
+    ? 'Guardando...'
+    : editingClient
+      ? 'Actualizar Cliente'
+      : 'Guardar Cliente'}
+</Button>
                       </form>
                     </Card>
                   )}
@@ -1514,7 +1570,22 @@ export default function App() {
               ) : adminTab === 'results' ? (
                 <ResultsDashboard responses={responses} clients={clients} surveyConfig={surveyConfig} />
               ) : (
-                <ConfigEditor config={surveyConfig} onSave={(newConfig) => setSurveyConfig(newConfig)} />
+<ConfigEditor
+  config={surveyConfig}
+  onSave={async (newConfig) => {
+    try {
+      setIsSaving(true);
+      const savedConfig = await saveSurveyConfig(newConfig);
+      setSurveyConfig(savedConfig);
+      alert('Configuración guardada correctamente');
+    } catch (error) {
+      console.error(error);
+      alert('No se pudo guardar la configuración');
+    } finally {
+      setIsSaving(false);
+    }
+  }}
+/>
               )}
             </motion.div>
           )}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import logoFt from './assets/logo.png';
 import { 
   Settings, 
   User, 
@@ -1107,11 +1108,19 @@ onClick={() => {
   setView('admin-login');
 }}
           >
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: COLORS.primary }}>
-              <BarChart3 size={20} />
-            </div>
-            <span className="font-bold text-xl tracking-tight" style={{ color: COLORS.primary }}>FT <span className="text-[#fa5800]">Group</span></span>
-          </div>
+<div 
+  className="flex items-center gap-3 cursor-pointer" 
+  onClick={() => {
+    setSelectedClient(null);
+    setIsSubmitted(false);
+    setView('admin-login');
+  }}
+>
+  <img src={logoFt} alt="FT Group" className="h-10 w-auto object-contain" />
+  <span className="font-bold text-xl tracking-tight text-[#fa5800]">
+    FT Group
+  </span>
+</div>
           
 {view === 'admin' && (
   <Button

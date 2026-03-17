@@ -1111,7 +1111,7 @@ const [view, setView] = useState<'admin' | 'client' | 'survey' | 'admin-login' |
       }}
     >
       <img src={logoFt} alt="FT Group" className="h-10 w-auto object-contain" />
-      <span className="font-bold text-xl tracking-tight text-[#fa5800]">
+      <span className="font-bold text-xl tracking-tight text-[#101c30]">
         FT Group
       </span>
     </div>

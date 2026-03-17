@@ -1110,7 +1110,7 @@ export default function App() {
             <span className="font-bold text-xl tracking-tight" style={{ color: COLORS.primary }}>FT <span className="text-[#fa5800]">Group</span></span>
           </div>
           
-{view !== 'landing' && !(view === 'survey' && isSubmitted) && (
+{view === 'admin' && (
   <Button
     variant="ghost"
     onClick={() => {

@@ -911,8 +911,7 @@ function ConfigEditor({ config, onSave }: { config: Record<string, ModuleConfig[
 // --- Main App ---
 
 export default function App() {
-  const [view, setView] = useState<'landing' | 'admin' | 'client' | 'survey' | 'admin-login' | 'client-welcome'>('landing');
-  const [adminTab, setAdminTab] = useState<'clients' | 'results' | 'config'>('clients');
+const [view, setView] = useState<'admin' | 'client' | 'survey' | 'admin-login' | 'client-welcome'>('admin-login');  const [adminTab, setAdminTab] = useState<'clients' | 'results' | 'config'>('clients');
   const [clients, setClients] = useState<ClientConfig[]>([]);
   const [responses, setResponses] = useState<SurveyResponse[]>([]);
   const [surveyConfig, setSurveyConfig] = useState<Record<string, ModuleConfig[]>>(DEFAULT_MODULES);
@@ -1102,7 +1101,11 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div 
             className="flex items-center gap-2 cursor-pointer" 
-            onClick={() => setView('landing')}
+onClick={() => {
+  setSelectedClient(null);
+  setIsSubmitted(false);
+  setView('admin-login');
+}}
           >
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: COLORS.primary }}>
               <BarChart3 size={20} />
@@ -1114,9 +1117,11 @@ export default function App() {
   <Button
     variant="ghost"
     onClick={() => {
-      setView('landing');
+      setIsLoggedIn(false);
       setSelectedClient(null);
       setIsSubmitted(false);
+      setLoginEmail('');
+      setView('admin-login');
     }}
   >
     <LogOut size={18} />
@@ -1128,42 +1133,6 @@ export default function App() {
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <AnimatePresence mode="wait">
-          {view === 'landing' && (
-            <motion.div 
-              key="landing"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="flex flex-col items-center justify-center py-20 gap-12 text-center"
-            >
-              <div className="space-y-6 max-w-2xl">
-                <div className="w-24 h-24 bg-orange-50 rounded-[2rem] flex items-center justify-center mx-auto text-[#fa5800] mb-8">
-                  <Star size={48} fill="currentColor" />
-                </div>
-                <h1 className="text-4xl sm:text-6xl font-bold tracking-tight leading-tight" style={{ color: COLORS.primary }}>
-                  Tu opinión es nuestra <span className="text-[#fa5800]">mejor guía</span>
-                </h1>
-                <p className="text-gray-500 text-lg sm:text-xl leading-relaxed">
-                  En <span className="font-bold text-[#101c30]">FT Group</span>, nos apasiona la excelencia. Esta encuesta nos ayuda a entender tu experiencia y a seguir construyendo soluciones que transformen tu negocio.
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-                <Button 
-                  variant="secondary" 
-                  className="flex-1 py-4 text-lg shadow-lg shadow-orange-200"
-                  onClick={() => setView('admin-login')}
-                >
-                  <ShieldCheck size={20} /> Acceso Consultor
-                </Button>
-              </div>
-              
-              <div className="pt-12 border-t border-gray-100 w-full max-w-xs">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-300">Impulsando el éxito empresarial</p>
-              </div>
-            </motion.div>
-          )}
-
           {view === 'admin-login' && (
             <motion.div 
               key="admin-login"
@@ -1188,9 +1157,6 @@ export default function App() {
                   />
                   <Button type="submit" variant="primary" className="w-full py-3">
                     Ingresar al Panel
-                  </Button>
-                  <Button variant="ghost" className="w-full" onClick={() => setView('landing')}>
-                    Volver
                   </Button>
                 </form>
               </Card>
@@ -1299,12 +1265,19 @@ export default function App() {
                       Configuración
                     </button>
                   </div>
-                  <Button variant="ghost" className="text-red-500 h-11 w-11 p-0 rounded-xl hover:bg-red-50" onClick={() => {
-                    setIsLoggedIn(false);
-                    setView('landing');
-                  }}>
-                    <LogOut size={20} />
-                  </Button>
+<Button
+  variant="ghost"
+  className="text-red-500 h-11 w-11 p-0 rounded-xl hover:bg-red-50"
+  onClick={() => {
+    setIsLoggedIn(false);
+    setSelectedClient(null);
+    setIsSubmitted(false);
+    setLoginEmail('');
+    setView('admin-login');
+  }}
+>
+  <LogOut size={20} />
+</Button>
                 </div>
               </div>
 

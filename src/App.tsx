@@ -1668,7 +1668,6 @@ onClick={() => {
                 </div>
                 <div className="hidden sm:block text-right">
                   <p className="text-[10px] font-bold text-[#fa5800] uppercase tracking-widest">FT Group</p>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Excelencia en Servicio</p>
                 </div>
               </div>
 

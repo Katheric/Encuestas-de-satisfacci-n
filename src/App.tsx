@@ -122,6 +122,18 @@ const Select = ({ label, options, ...props }: { label?: string, options: {value:
 
 // --- Helper Functions ---
 
+const slugify = (text: string) => {
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/--+/g, '-');
+};
+
 const getScoreColor = (score: number) => {
   if (score >= 4.5) return '#10b981'; // Green (Promoter)
   if (score >= 3.5) return '#f59e0b'; // Yellow (Passive)
@@ -880,8 +892,12 @@ export default function App() {
 
     const params = new URLSearchParams(window.location.search);
     const clientId = params.get('clientId');
-    if (clientId) {
-      const client = parsedClients.find((c: ClientConfig) => c.id === clientId);
+    const clientSlug = params.get('client');
+    
+    if (clientId || clientSlug) {
+      const client = parsedClients.find((c: ClientConfig) => 
+        c.id === clientId || (c.companyName && slugify(c.companyName) === clientSlug)
+      );
       if (client) {
         setSelectedClient(client);
         setView('client-welcome');
@@ -936,10 +952,11 @@ export default function App() {
     }
   };
 
-  const copyClientLink = (clientId: string) => {
-    const url = `${window.location.origin}${window.location.pathname}?clientId=${clientId}`;
+  const copyClientLink = (client: ClientConfig) => {
+    const slug = slugify(client.companyName);
+    const url = `${window.location.origin}${window.location.pathname}?client=${slug}`;
     navigator.clipboard.writeText(url);
-    alert('Link copiado al portapapeles');
+    alert('Link copiado al portapapeles: ' + url);
   };
 
   const handleSurveySubmit = (answers: { questionId: string, value: string | number }[]) => {
@@ -1413,7 +1430,7 @@ export default function App() {
                             >
                               <User size={14} /> Ver como Cliente
                             </Button>
-                            <Button variant="ghost" className="text-blue-500" onClick={() => copyClientLink(client.id)}>
+                            <Button variant="ghost" className="text-blue-500" onClick={() => copyClientLink(client)}>
                               <LinkIcon size={18} />
                             </Button>
                             <Button variant="ghost" onClick={() => {

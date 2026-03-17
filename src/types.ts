@@ -18,7 +18,7 @@ export interface ClientConfig {
   id: string;
   companyName: string;
   services: ServiceType[];
-  activeModules: string[]; // IDs of modules currently active for evaluation
+  activeModules: string[];
   evaluationRange?: {
     start: string;
     end: string;
@@ -30,6 +30,7 @@ export interface ClientConfig {
   customQuestions?: Question[];
   lastSurveyDate?: string;
   logoUrl?: string;
+  logoFileId?: string;
 }
 
 export interface SurveyResponse {

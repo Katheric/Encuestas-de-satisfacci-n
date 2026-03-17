@@ -44,6 +44,16 @@ import {
 } from 'recharts';
 import { ClientConfig, ServiceType, SurveyResponse, ModuleConfig } from './types';
 import { COLORS, DEFAULT_MODULES } from './constants';
+import {
+  getInitialData,
+  getClientBySlug,
+  createClient,
+  updateClient,
+  deleteClient as deleteClientApi,
+  saveSurveyResponse,
+  saveSurveyConfig,
+  uploadLogo,
+} from './services/api';
 
 // --- Shared Components ---
 
@@ -869,6 +879,8 @@ export default function App() {
   const [loginEmail, setLoginEmail] = useState('');
   
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   
   const [newClient, setNewClient] = useState<Partial<ClientConfig>>({
     companyName: '',
@@ -876,70 +888,106 @@ export default function App() {
     activeModules: [],
     evaluationRange: { start: '', end: '' },
     evaluationHistory: [],
-    logoUrl: ''
+    logoUrl: '',
+    logoFileId: ''
   });
 
-  // Load data and handle URL params
+  // Load data from Apps Script and handle URL params
   useEffect(() => {
-    const savedClients = localStorage.getItem('satisfaction_clients');
-    const savedResponses = localStorage.getItem('satisfaction_responses');
-    const savedConfig = localStorage.getItem('satisfaction_config');
-    
-    const parsedClients = savedClients ? JSON.parse(savedClients) : [];
-    if (savedClients) setClients(parsedClients);
-    if (savedResponses) setResponses(JSON.parse(savedResponses));
-    if (savedConfig) setSurveyConfig(JSON.parse(savedConfig));
+    const loadAppData = async () => {
+      try {
+        setIsLoading(true);
 
-    const params = new URLSearchParams(window.location.search);
-    const clientId = params.get('clientId');
-    const clientSlug = params.get('client');
-    
-    if (clientId || clientSlug) {
-      const client = parsedClients.find((c: ClientConfig) => 
-        c.id === clientId || (c.companyName && slugify(c.companyName) === clientSlug)
-      );
-      if (client) {
-        setSelectedClient(client);
-        setView('client-welcome');
+        const data = await getInitialData();
+        setClients(data.clients || []);
+        setResponses(data.responses || []);
+        setSurveyConfig(data.surveyConfig || DEFAULT_MODULES);
+
+        const params = new URLSearchParams(window.location.search);
+        const clientId = params.get('clientId');
+        const clientSlug = params.get('client');
+
+        if (clientId) {
+          const found = (data.clients || []).find((c: ClientConfig) => c.id === clientId);
+          if (found) {
+            setSelectedClient(found);
+            setView('client-welcome');
+          }
+        } else if (clientSlug) {
+          const found = await getClientBySlug(clientSlug);
+          if (found) {
+            setSelectedClient(found);
+            setView('client-welcome');
+          }
+        }
+      } catch (error) {
+        console.error(error);
+        alert('No se pudo cargar la información desde Google Sheets.');
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+
+    loadAppData();
   }, []);
 
-  // Save data
-  useEffect(() => {
-    localStorage.setItem('satisfaction_clients', JSON.stringify(clients));
-    localStorage.setItem('satisfaction_responses', JSON.stringify(responses));
-    localStorage.setItem('satisfaction_config', JSON.stringify(surveyConfig));
-  }, [clients, responses, surveyConfig]);
-
-  const handleAddClient = (e: React.FormEvent) => {
+  const handleAddClient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClient.companyName) return;
 
-    const client: ClientConfig = {
-      id: editingClient?.id || Date.now().toString(),
-      companyName: newClient.companyName,
-      services: newClient.services as ServiceType[],
-      activeModules: newClient.activeModules || [],
-      evaluationRange: newClient.evaluationRange,
-      evaluationHistory: newClient.evaluationHistory || [],
-      logoUrl: newClient.logoUrl,
-      lastSurveyDate: editingClient?.lastSurveyDate || new Date().toISOString().split('T')[0]
-    };
+    try {
+      setIsSaving(true);
 
-    if (editingClient) {
-      setClients(clients.map(c => c.id === editingClient.id ? client : c));
-    } else {
-      setClients([...clients, client]);
+      const payload: ClientConfig = {
+        id: editingClient?.id || '',
+        companyName: newClient.companyName || '',
+        services: (newClient.services || []) as ServiceType[],
+        activeModules: newClient.activeModules || [],
+        evaluationRange: newClient.evaluationRange,
+        evaluationHistory: newClient.evaluationHistory || [],
+        logoUrl: newClient.logoUrl || '',
+        logoFileId: newClient.logoFileId || '',
+        lastSurveyDate: editingClient?.lastSurveyDate || '',
+      };
+
+      let savedClient: ClientConfig;
+
+      if (editingClient) {
+        savedClient = await updateClient(payload as ClientConfig & { id: string });
+        setClients(prev => prev.map(c => (c.id === editingClient.id ? savedClient : c)));
+      } else {
+        savedClient = await createClient(payload);
+        setClients(prev => [...prev, savedClient]);
+      }
+
+      setIsAddingClient(false);
+      setEditingClient(null);
+      setNewClient({
+        companyName: '',
+        services: [],
+        activeModules: [],
+        evaluationRange: { start: '', end: '' },
+        evaluationHistory: [],
+        logoUrl: '',
+        logoFileId: '',
+      });
+    } catch (error) {
+      console.error(error);
+      alert('No se pudo guardar el cliente.');
+    } finally {
+      setIsSaving(false);
     }
-    
-    setIsAddingClient(false);
-    setEditingClient(null);
-    setNewClient({ companyName: '', services: [], activeModules: [], evaluationRange: { start: '', end: '' }, logoUrl: '' });
   };
 
-  const handleDeleteClient = (id: string) => {
-    setClients(clients.filter(c => c.id !== id));
+  const handleDeleteClient = async (id: string) => {
+    try {
+      await deleteClientApi(id);
+      setClients(prev => prev.filter(c => c.id !== id));
+      setResponses(prev => prev.filter(r => r.clientId !== id));
+    } catch (error) {
+      console.error(error);
+      alert('No se pudo eliminar el cliente.');
+    }
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -959,19 +1007,33 @@ export default function App() {
     alert('Link copiado al portapapeles: ' + url);
   };
 
-  const handleSurveySubmit = (answers: { questionId: string, value: string | number }[]) => {
+  const handleSurveySubmit = async (answers: { questionId: string; value: string | number }[]) => {
     if (!selectedClient) return;
 
-    const response: SurveyResponse = {
-      id: Date.now().toString(),
-      clientId: selectedClient.id,
-      date: new Date().toISOString().split('T')[0],
-      evaluationRange: selectedClient.evaluationRange,
-      answers
-    };
+    try {
+      setIsSaving(true);
 
-    setResponses([...responses, response]);
-    setIsSubmitted(true);
+      const response = await saveSurveyResponse({
+        clientId: selectedClient.id,
+        answers,
+      });
+
+      setResponses(prev => [...prev, response]);
+      setIsSubmitted(true);
+
+      setClients(prev =>
+        prev.map(client =>
+          client.id === selectedClient.id
+            ? { ...client, lastSurveyDate: response.date }
+            : client
+        )
+      );
+    } catch (error) {
+      console.error(error);
+      alert('No se pudo guardar la encuesta.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const filteredClients = clients.filter(c => 

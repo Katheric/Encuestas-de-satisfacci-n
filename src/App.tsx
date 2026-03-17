@@ -1098,48 +1098,42 @@ const [view, setView] = useState<'admin' | 'client' | 'survey' | 'admin-login' |
   
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div 
-            className="flex items-center gap-2 cursor-pointer" 
-onClick={() => {
-  setSelectedClient(null);
-  setIsSubmitted(false);
-  setView('admin-login');
-}}
-          >
-<div 
-  className="flex items-center gap-3 cursor-pointer" 
-  onClick={() => {
-    setSelectedClient(null);
-    setIsSubmitted(false);
-    setView('admin-login');
-  }}
->
-  <img src={logoFt} alt="FT Group" className="h-10 w-auto object-contain" />
-  <span className="font-bold text-xl tracking-tight text-[#fa5800]">
-    FT Group
-  </span>
-</div>
-          
-{view === 'admin' && (
-  <Button
-    variant="ghost"
-    onClick={() => {
-      setIsLoggedIn(false);
-      setSelectedClient(null);
-      setIsSubmitted(false);
-      setLoginEmail('');
-      setView('admin-login');
-    }}
-  >
-    <LogOut size={18} />
-    <span className="hidden sm:inline">Salir</span>
-  </Button>
-)}
-        </div>
-      </header>
 
+
+<header className="bg-white border-b border-gray-100 sticky top-0 z-10">
+  <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+    <div
+      className="flex items-center gap-3 cursor-pointer"
+      onClick={() => {
+        setSelectedClient(null);
+        setIsSubmitted(false);
+        setView('admin-login');
+      }}
+    >
+      <img src={logoFt} alt="FT Group" className="h-10 w-auto object-contain" />
+      <span className="font-bold text-xl tracking-tight text-[#fa5800]">
+        FT Group
+      </span>
+    </div>
+
+    {view === 'admin' && (
+      <Button
+        variant="ghost"
+        onClick={() => {
+          setIsLoggedIn(false);
+          setSelectedClient(null);
+          setIsSubmitted(false);
+          setLoginEmail('');
+          setView('admin-login');
+        }}
+      >
+        <LogOut size={18} />
+        <span className="hidden sm:inline">Salir</span>
+      </Button>
+    )}
+  </div>
+</header>
+      
       <main className="max-w-6xl mx-auto px-4 py-8">
         <AnimatePresence mode="wait">
           {view === 'admin-login' && (

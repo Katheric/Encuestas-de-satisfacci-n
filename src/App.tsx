@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import logoFt from './assets/logo.png';
+import logoFt from './assets/icono_blanco (4).png';
 import { 
   Settings, 
   User, 

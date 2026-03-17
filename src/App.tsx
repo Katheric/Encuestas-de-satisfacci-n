@@ -395,7 +395,9 @@ function ResultsDashboard({ responses, clients, surveyConfig }: { responses: Sur
               <Calendar size={18} className="text-gray-400" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-bold">{dateRange.start || 'Inicio'} — {dateRange.end || 'Fin'}</p>
+<p className="text-sm font-bold">
+  {dateRange.start ? formatDate(dateRange.start) : 'Inicio'} — {dateRange.end ? formatDate(dateRange.end) : 'Fin'}
+</p>
               <p className="text-xs text-gray-400">Periodo de análisis seleccionado</p>
             </div>
           </div>
@@ -573,7 +575,7 @@ function ResultsDashboard({ responses, clients, surveyConfig }: { responses: Sur
                     <p className="text-xs font-bold">{comment.client}</p>
                     <span className="text-[9px] px-1.5 py-0.5 bg-gray-200 rounded text-gray-500 font-bold uppercase">{comment.service}</span>
                   </div>
-                  <p className="text-[10px] text-gray-400">{comment.date}</p>
+<p className="text-[10px] text-gray-400">{formatDate(comment.date)}</p>
                 </div>
                 <div 
                   className="px-2 py-1 rounded text-[10px] font-bold text-white"
@@ -596,7 +598,17 @@ function ResultsDashboard({ responses, clients, surveyConfig }: { responses: Sur
 
 // --- Survey Form Component ---
 
-function SurveyForm({ client, onSubmit, surveyConfig }: { client: ClientConfig, onSubmit: (answers: any[]) => void, surveyConfig: Record<string, ModuleConfig[]> }) {
+function SurveyForm({
+  client,
+  onSubmit,
+  surveyConfig,
+  isSaving
+}: {
+  client: ClientConfig;
+  onSubmit: (answers: { questionId: string; value: string | number }[]) => void;
+  surveyConfig: Record<string, ModuleConfig[]>;
+  isSaving: boolean;
+}) {
   const [answers, setAnswers] = useState<Record<string, string | number>>({});
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -647,8 +659,12 @@ function SurveyForm({ client, onSubmit, surveyConfig }: { client: ClientConfig, 
               {mIdx + 1}
             </div>
             <div>
-              <p className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Producto: {module.serviceName}</p>
-              <h3 className="text-xl font-bold text-[#101c30]">{module.serviceName} - {module.name}</h3>
+              <p className="text-[10px] uppercase font-bold tracking-widest text-gray-400">
+                Producto: {module.serviceName}
+              </p>
+              <h3 className="text-xl font-bold text-[#101c30]">
+                {module.serviceName} - {module.name}
+              </h3>
             </div>
           </div>
 
@@ -663,11 +679,13 @@ function SurveyForm({ client, onSubmit, surveyConfig }: { client: ClientConfig, 
                       <button
                         key={num}
                         type="button"
-                        onClick={() => setAnswers({...answers, [q.id]: num})}
+                        disabled={isSaving}
+                        onClick={() => setAnswers({ ...answers, [q.id]: num })}
                         className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-2 transition-all flex items-center justify-center font-bold text-base sm:text-lg
                           ${answers[q.id] === num 
                             ? 'bg-[#fa5800] border-[#fa5800] text-white scale-110 shadow-lg' 
-                            : 'bg-white border-gray-100 text-gray-400 hover:border-orange-200 hover:text-orange-400'}`}
+                            : 'bg-white border-gray-100 text-gray-400 hover:border-orange-200 hover:text-orange-400'}
+                          ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
                       >
                         {num}
                       </button>
@@ -683,8 +701,9 @@ function SurveyForm({ client, onSubmit, surveyConfig }: { client: ClientConfig, 
                   <textarea 
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#fa5800] focus:border-transparent transition-all min-h-[100px]"
                     placeholder="Escribe tu respuesta aquí..."
-                    value={answers[q.id] as string || ''}
-                    onChange={e => setAnswers({...answers, [q.id]: e.target.value})}
+                    value={(answers[q.id] as string) || ''}
+                    onChange={e => setAnswers({ ...answers, [q.id]: e.target.value })}
+                    disabled={isSaving}
                   />
                 )}
               </div>
@@ -695,14 +714,28 @@ function SurveyForm({ client, onSubmit, surveyConfig }: { client: ClientConfig, 
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-100 sm:bg-transparent sm:backdrop-blur-none sm:border-none sm:relative sm:p-0 sm:mt-12">
         <div className="max-w-4xl mx-auto">
-          <Button type="submit" variant="secondary" className="w-full py-4 text-lg shadow-xl shadow-orange-200">
-            Enviar Encuesta
+          <Button
+            type="submit"
+            variant="secondary"
+            className="w-full py-4 text-lg shadow-xl shadow-orange-200"
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                <span>Enviando...</span>
+              </div>
+            ) : (
+              'Enviar Encuesta'
+            )}
           </Button>
         </div>
       </div>
     </form>
   );
 }
+
+
 
 // --- Config Editor Component ---
 
@@ -1077,12 +1110,19 @@ export default function App() {
             <span className="font-bold text-xl tracking-tight" style={{ color: COLORS.primary }}>FT <span className="text-[#fa5800]">Group</span></span>
           </div>
           
-          {view !== 'landing' && (
-            <Button variant="ghost" onClick={() => setView('landing')}>
-              <LogOut size={18} />
-              <span className="hidden sm:inline">Salir</span>
-            </Button>
-          )}
+{view !== 'landing' && !(view === 'survey' && isSubmitted) && (
+  <Button
+    variant="ghost"
+    onClick={() => {
+      setView('landing');
+      setSelectedClient(null);
+      setIsSubmitted(false);
+    }}
+  >
+    <LogOut size={18} />
+    <span className="hidden sm:inline">Salir</span>
+  </Button>
+)}
         </div>
       </header>
 
@@ -1197,26 +1237,23 @@ export default function App() {
                 </Card>
               </div>
 
-              {hasEvaluatedInRange(selectedClient.id, selectedClient.evaluationRange, responses) ? (
-                <div className="space-y-6">
-                  <div className="p-6 bg-emerald-50 border border-emerald-100 rounded-2xl flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
-                      <CheckCircle2 size={24} />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-emerald-800 font-bold">Evaluación Completada</p>
-                      <p className="text-emerald-600 text-sm">Ya has realizado la evaluación correspondiente a este periodo. ¡Gracias por tu participación!</p>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full py-4"
-                    onClick={() => setView('landing')}
-                  >
-                    Volver al Inicio
-                  </Button>
-                </div>
-              ) : (
+{hasEvaluatedInRange(selectedClient.id, selectedClient.evaluationRange, responses) ? (
+  <div className="space-y-6">
+    <div className="p-6 bg-emerald-50 border border-emerald-100 rounded-2xl flex flex-col items-center gap-4">
+      <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+        <CheckCircle2 size={24} />
+      </div>
+      <div className="space-y-1">
+        <p className="text-emerald-800 font-bold">Evaluación Completada</p>
+        <p className="text-emerald-600 text-sm">
+          Ya has realizado la evaluación correspondiente a este periodo. ¡Gracias por tu participación!
+        </p>
+      </div>
+    </div>
+  </div>
+) : (
+
+              
                 <Button 
                   variant="secondary" 
                   className="w-full py-5 text-xl shadow-xl shadow-orange-200"
@@ -1529,9 +1566,9 @@ export default function App() {
                         <div className="flex items-center gap-4">
                           <div className="text-right hidden sm:block">
                             <p className="text-[10px] text-gray-400 font-bold uppercase">Evaluación Activa</p>
-                            <p className="text-xs font-medium text-orange-600">
-                              {client.activeModules.length} módulos • {client.evaluationRange?.start || '?'} - {client.evaluationRange?.end || '?'}
-                            </p>
+<p className="text-xs font-medium text-orange-600">
+  {client.activeModules.length} módulos • {client.evaluationRange?.start ? formatDate(client.evaluationRange.start) : '?'} - {client.evaluationRange?.end ? formatDate(client.evaluationRange.end) : '?'}
+</p>
                             
                             {client.evaluationHistory && client.evaluationHistory.length > 0 && (
                               <div className="mt-2 pt-2 border-t border-gray-50">
@@ -1540,9 +1577,9 @@ export default function App() {
                                 </p>
                                 <div className="flex flex-col items-end gap-1 mt-1">
                                   {client.evaluationHistory.slice(-3).reverse().map((h, idx) => (
-                                    <span key={idx} className="text-[9px] text-gray-400">
-                                      {h.start} al {h.end}
-                                    </span>
+<span key={idx} className="text-[9px] text-gray-400">
+  {formatDate(h.start)} al {formatDate(h.end)}
+</span>
                                   ))}
                                   {client.evaluationHistory.length > 3 && (
                                     <span className="text-[8px] text-gray-300 italic">+{client.evaluationHistory.length - 3} más</span>
@@ -1662,33 +1699,27 @@ export default function App() {
                 </div>
               </div>
 
-              {isSubmitted || hasEvaluatedInRange(selectedClient.id, selectedClient.evaluationRange, responses) ? (
-                <Card className="py-20 text-center space-y-8 border-none bg-white shadow-xl shadow-gray-100">
-                  <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto text-green-500">
-                    <CheckCircle2 size={48} />
-                  </div>
-                  <div className="space-y-4 max-w-md mx-auto">
-                    <h3 className="text-3xl sm:text-4xl font-bold text-[#101c30]">¡Muchas gracias!</h3>
-                    <p className="text-lg text-gray-500 leading-relaxed">
-                      Tu evaluación ha sido recibida correctamente. Valoramos mucho tu opinión para seguir mejorando nuestros servicios y brindarte la mejor experiencia posible.
-                    </p>
-                  </div>
-                  <div className="pt-4">
-                    <Button variant="primary" className="px-12 py-3" onClick={() => {
-                      setView('landing');
-                      setSelectedClient(null);
-                      setIsSubmitted(false);
-                    }}>
-                      Finalizar
-                    </Button>
-                  </div>
-                </Card>
-              ) : (
-                <SurveyForm 
-                  client={selectedClient} 
-                  onSubmit={handleSurveySubmit} 
-                  surveyConfig={surveyConfig}
-                />
+{isSubmitted || hasEvaluatedInRange(selectedClient.id, selectedClient.evaluationRange, responses) ? (
+  <Card className="py-20 text-center space-y-8 border-none bg-white shadow-xl shadow-gray-100">
+    <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto text-green-500">
+      <CheckCircle2 size={48} />
+    </div>
+    <div className="space-y-4 max-w-md mx-auto">
+      <h3 className="text-3xl sm:text-4xl font-bold text-[#101c30]">¡Muchas gracias!</h3>
+      <p className="text-lg text-gray-500 leading-relaxed">
+        Tu evaluación ha sido recibida correctamente. Valoramos mucho tu opinión para seguir mejorando nuestros servicios y brindarte la mejor experiencia posible.
+      </p>
+    </div>
+  </Card>
+) : (
+
+              
+<SurveyForm
+  client={selectedClient}
+  onSubmit={handleSurveySubmit}
+  surveyConfig={surveyConfig}
+  isSaving={isSaving}
+/>
               )}
             </motion.div>
           )}

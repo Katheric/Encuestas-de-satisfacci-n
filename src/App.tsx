@@ -144,6 +144,18 @@ const slugify = (text: string) => {
     .replace(/--+/g, '-');
 };
 
+const formatDate = (dateString?: string) => {
+  if (!dateString) return '';
+
+  const date = new Date(dateString);
+
+  return date.toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+};
+
 const getScoreColor = (score: number) => {
   if (score >= 4.5) return '#10b981'; // Green (Promoter)
   if (score >= 3.5) return '#f59e0b'; // Yellow (Passive)
@@ -1175,7 +1187,9 @@ export default function App() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                 <Card className="bg-white border-gray-100">
                   <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Periodo</p>
-                  <p className="text-sm font-bold">{selectedClient.evaluationRange?.start} al {selectedClient.evaluationRange?.end}</p>
+<p className="text-sm font-bold">
+  {formatDate(selectedClient.evaluationRange?.start)} al {formatDate(selectedClient.evaluationRange?.end)}
+</p>
                 </Card>
                 <Card className="bg-white border-gray-100">
                   <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Servicios</p>

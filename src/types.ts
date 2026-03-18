@@ -14,6 +14,11 @@ export interface ModuleConfig {
   periodicity?: string;
 }
 
+export interface ProjectInfo {
+  area: string;
+  projectName: string;
+}
+
 export interface ClientConfig {
   id: string;
   companyName: string;
@@ -31,6 +36,7 @@ export interface ClientConfig {
   lastSurveyDate?: string;
   logoUrl?: string;
   logoFileId?: string;
+  projects?: ProjectInfo[];
 }
 
 export interface SurveyResponse {

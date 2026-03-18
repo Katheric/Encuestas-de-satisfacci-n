@@ -43,7 +43,7 @@ import {
   LabelList,
   Legend
 } from 'recharts';
-import { ClientConfig, ServiceType, SurveyResponse, ModuleConfig } from './types';
+import { ClientConfig, ServiceType, SurveyResponse, ModuleConfig, ProjectInfo } from './types';
 import { COLORS, DEFAULT_MODULES } from './constants';
 import {
   getInitialData,
@@ -927,15 +927,16 @@ const [view, setView] = useState<'admin' | 'client' | 'survey' | 'admin-login' |
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
-  const [newClient, setNewClient] = useState<Partial<ClientConfig>>({
-    companyName: '',
-    services: [],
-    activeModules: [],
-    evaluationRange: { start: '', end: '' },
-    evaluationHistory: [],
-    logoUrl: '',
-    logoFileId: ''
-  });
+const [newClient, setNewClient] = useState<Partial<ClientConfig>>({
+  companyName: '',
+  services: [],
+  activeModules: [],
+  evaluationRange: { start: '', end: '' },
+  evaluationHistory: [],
+  logoUrl: '',
+  logoFileId: '',
+  projects: []
+});
 
   // Load data from Apps Script and handle URL params
   useEffect(() => {
@@ -983,17 +984,18 @@ const [view, setView] = useState<'admin' | 'client' | 'survey' | 'admin-login' |
     try {
       setIsSaving(true);
 
-      const payload: ClientConfig = {
-        id: editingClient?.id || '',
-        companyName: newClient.companyName || '',
-        services: (newClient.services || []) as ServiceType[],
-        activeModules: newClient.activeModules || [],
-        evaluationRange: newClient.evaluationRange,
-        evaluationHistory: newClient.evaluationHistory || [],
-        logoUrl: newClient.logoUrl || '',
-        logoFileId: newClient.logoFileId || '',
-        lastSurveyDate: editingClient?.lastSurveyDate || '',
-      };
+const payload: ClientConfig = {
+  id: editingClient?.id || '',
+  companyName: newClient.companyName || '',
+  services: (newClient.services || []) as ServiceType[],
+  activeModules: newClient.activeModules || [],
+  evaluationRange: newClient.evaluationRange,
+  evaluationHistory: newClient.evaluationHistory || [],
+  logoUrl: newClient.logoUrl || '',
+  logoFileId: newClient.logoFileId || '',
+  lastSurveyDate: editingClient?.lastSurveyDate || '',
+  projects: newClient.projects || [],
+};
 
       let savedClient: ClientConfig;
 
@@ -1007,15 +1009,16 @@ const [view, setView] = useState<'admin' | 'client' | 'survey' | 'admin-login' |
 
       setIsAddingClient(false);
       setEditingClient(null);
-      setNewClient({
-        companyName: '',
-        services: [],
-        activeModules: [],
-        evaluationRange: { start: '', end: '' },
-        evaluationHistory: [],
-        logoUrl: '',
-        logoFileId: '',
-      });
+setNewClient({
+  companyName: '',
+  services: [],
+  activeModules: [],
+  evaluationRange: { start: '', end: '' },
+  evaluationHistory: [],
+  logoUrl: '',
+  logoFileId: '',
+  projects: []
+});
     } catch (error) {
       console.error(error);
       alert('No se pudo guardar el cliente.');
@@ -1200,10 +1203,20 @@ const [view, setView] = useState<'admin' | 'client' | 'survey' | 'admin-login' |
   {formatDate(selectedClient.evaluationRange?.start)} al {formatDate(selectedClient.evaluationRange?.end)}
 </p>
                 </Card>
-                <Card className="bg-white border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Servicios</p>
-                  <p className="text-sm font-bold">{selectedClient.services.join(', ')}</p>
-                </Card>
+<Card className="bg-white border-gray-100">
+  <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Servicios</p>
+  <p className="text-sm font-bold">{selectedClient.services.join(', ')}</p>
+
+  {selectedClient.projects && selectedClient.projects.length > 0 && (
+    <div className="mt-3 space-y-1">
+      {selectedClient.projects.map((project, idx) => (
+        <p key={idx} className="text-xs text-gray-500">
+          <span className="font-bold">{project.area}:</span> {project.projectName}
+        </p>
+      ))}
+    </div>
+  )}
+</Card>
               </div>
 
 {hasEvaluatedInRange(selectedClient.id, selectedClient.evaluationRange, responses) ? (
@@ -1297,7 +1310,8 @@ const [view, setView] = useState<'admin' | 'client' | 'survey' | 'admin-login' |
     evaluationRange: { start: '', end: '' },
     evaluationHistory: [],
     logoUrl: '',
-    logoFileId: ''
+    logoFileId: '',
+    projects: []
   });
   setIsAddingClient(true);
 }}>
@@ -1396,29 +1410,115 @@ const [view, setView] = useState<'admin' | 'client' | 'survey' | 'admin-login' |
                               </div>
                             </div>
                             
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-gray-700">Servicios Contratados</label>
-                              <div className="grid grid-cols-1 gap-2">
-                                {Object.keys(surveyConfig).map(service => (
-                                  <label key={service} className="flex items-center gap-2 p-2 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer">
-                                    <input 
-                                      type="checkbox" 
-                                      checked={newClient.services?.includes(service)}
-                                      onChange={e => {
-                                        const services = newClient.services || [];
-                                        if (e.target.checked) {
-                                          setNewClient({...newClient, services: [...services, service]});
-                                        } else {
-                                          setNewClient({...newClient, services: services.filter(s => s !== service)});
-                                        }
-                                      }}
-                                      className="w-4 h-4 accent-[#fa5800]"
-                                    />
-                                    <span className="text-sm">{service}</span>
-                                  </label>
-                                ))}
-                              </div>
-                            </div>
+<div className="space-y-2">
+  <label className="text-sm font-medium text-gray-700">Servicios Contratados</label>
+  <div className="grid grid-cols-1 gap-2">
+    {Object.keys(surveyConfig).map(service => (
+      <label key={service} className="flex items-center gap-2 p-2 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer">
+        <input 
+          type="checkbox" 
+          checked={newClient.services?.includes(service)}
+          onChange={e => {
+            const services = newClient.services || [];
+
+            if (e.target.checked) {
+              setNewClient({
+                ...newClient,
+                services: [...services, service]
+              });
+            } else {
+              const updatedServices = services.filter(s => s !== service);
+
+              setNewClient({
+                ...newClient,
+                services: updatedServices,
+                projects: service === 'Proyectos' ? [] : newClient.projects
+              });
+            }
+          }}
+          className="w-4 h-4 accent-[#fa5800]"
+        />
+        <span className="text-sm">{service}</span>
+      </label>
+    ))}
+  </div>
+
+  {newClient.services?.includes('Proyectos') && (
+    <div className="space-y-4 mt-4 p-4 rounded-xl border border-orange-100 bg-orange-50/40">
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium text-gray-700">Proyectos</label>
+        <Button
+          type="button"
+          variant="outline"
+          className="text-xs"
+          onClick={() =>
+            setNewClient(prev => ({
+              ...prev,
+              projects: [...(prev.projects || []), { area: '', projectName: '' }]
+            }))
+          }
+        >
+          <Plus size={14} /> Agregar Proyecto
+        </Button>
+      </div>
+
+      {(newClient.projects || []).length === 0 && (
+        <p className="text-xs text-gray-400 italic">
+          Agrega al menos un proyecto para este cliente.
+        </p>
+      )}
+
+      {(newClient.projects || []).map((project, index) => (
+        <div
+          key={index}
+          className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-end bg-white p-3 rounded-lg border border-gray-100"
+        >
+          <Input
+            label="Área"
+            placeholder="Ej. Finanzas, Operaciones, RRHH"
+            value={project.area}
+            onChange={e =>
+              setNewClient(prev => ({
+                ...prev,
+                projects: (prev.projects || []).map((p, i) =>
+                  i === index ? { ...p, area: e.target.value } : p
+                )
+              }))
+            }
+          />
+
+          <Input
+            label="Nombre del Proyecto"
+            placeholder="Ej. Implementación de presupuesto 2026"
+            value={project.projectName}
+            onChange={e =>
+              setNewClient(prev => ({
+                ...prev,
+                projects: (prev.projects || []).map((p, i) =>
+                  i === index ? { ...p, projectName: e.target.value } : p
+                )
+              }))
+            }
+          />
+
+          <Button
+            type="button"
+            variant="ghost"
+            className="text-red-500"
+            onClick={() =>
+              setNewClient(prev => ({
+                ...prev,
+                projects: (prev.projects || []).filter((_, i) => i !== index)
+              }))
+            }
+          >
+            <Trash2 size={16} />
+          </Button>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
 
                             <div className="space-y-2">
                               <div className="flex justify-between items-center">
@@ -1526,16 +1626,28 @@ const [view, setView] = useState<'admin' | 'client' | 'survey' | 'admin-login' |
                                 {getClientStatus(client.evaluationRange).label}
                               </span>
                             </div>
-                            <div className="flex flex-wrap gap-2 mt-1 items-center">
-                              {client.services.map(s => (
-                                <span key={s} className="text-[10px] px-2 py-0.5 bg-gray-100 rounded-full font-bold text-gray-500 uppercase">{s}</span>
-                              ))}
-                              {hasEvaluatedInRange(client.id, client.evaluationRange, responses) && (
-                                <span className="text-[9px] px-2 py-0.5 bg-emerald-100 text-emerald-600 rounded-full font-bold uppercase flex items-center gap-1">
-                                  <CheckCircle2 size={10} /> Evaluó
-                                </span>
-                              )}
-                            </div>
+<div className="flex flex-wrap gap-2 mt-1 items-center">
+  {client.services.map(s => (
+    <span key={s} className="text-[10px] px-2 py-0.5 bg-gray-100 rounded-full font-bold text-gray-500 uppercase">
+      {s}
+    </span>
+  ))}
+  {hasEvaluatedInRange(client.id, client.evaluationRange, responses) && (
+    <span className="text-[9px] px-2 py-0.5 bg-emerald-100 text-emerald-600 rounded-full font-bold uppercase flex items-center gap-1">
+      <CheckCircle2 size={10} /> Evaluó
+    </span>
+  )}
+</div>
+
+{client.projects && client.projects.length > 0 && (
+  <div className="mt-2 space-y-1">
+    {client.projects.map((project, idx) => (
+      <p key={idx} className="text-[11px] text-gray-500">
+        <span className="font-bold">{project.area}:</span> {project.projectName}
+      </p>
+    ))}
+  </div>
+)}
                           </div>
                         </div>
                         
@@ -1578,13 +1690,16 @@ const [view, setView] = useState<'admin' | 'client' | 'survey' | 'admin-login' |
                             <Button variant="ghost" className="text-blue-500" onClick={() => copyClientLink(client)}>
                               <LinkIcon size={18} />
                             </Button>
-                            <Button variant="ghost" onClick={() => {
-                              setEditingClient(client);
-                              setNewClient(client);
-                              setIsAddingClient(true);
-                            }}>
-                              <Settings size={18} />
-                            </Button>
+<Button variant="ghost" onClick={() => {
+  setEditingClient(client);
+  setNewClient({
+    ...client,
+    projects: client.projects || []
+  });
+  setIsAddingClient(true);
+}}>
+  <Settings size={18} />
+</Button>
                             <Button variant="ghost" className="text-red-500" onClick={() => handleDeleteClient(client.id)}>
                               <Trash2 size={18} />
                             </Button>

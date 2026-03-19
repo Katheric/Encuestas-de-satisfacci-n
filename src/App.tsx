@@ -1410,30 +1410,38 @@ setNewClient({
                               </div>
                             </div>
                             
-<div className="space-y-2">
+
+          <div className="space-y-2">
   <label className="text-sm font-medium text-gray-700">Servicios Contratados</label>
   <div className="grid grid-cols-1 gap-2">
     {Object.keys(surveyConfig).map(service => (
-      <label key={service} className="flex items-center gap-2 p-2 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer">
-        <input 
-          type="checkbox" 
+      <label
+        key={service}
+        className="flex items-center gap-2 p-2 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer"
+      >
+        <input
+          type="checkbox"
           checked={newClient.services?.includes(service)}
           onChange={e => {
             const services = newClient.services || [];
 
             if (e.target.checked) {
-              setNewClient({
-                ...newClient,
-                services: [...services, service]
-              });
+              setNewClient(prev => ({
+                ...prev,
+                services: [...services, service],
+                projects:
+                  service === 'Proyectos' && (!prev.projects || prev.projects.length === 0)
+                    ? [{ area: '', projectName: '' }]
+                    : (prev.projects || [])
+              }));
             } else {
               const updatedServices = services.filter(s => s !== service);
 
-              setNewClient({
-                ...newClient,
+              setNewClient(prev => ({
+                ...prev,
                 services: updatedServices,
-                projects: service === 'Proyectos' ? [] : newClient.projects
-              });
+                projects: service === 'Proyectos' ? [] : (prev.projects || [])
+              }));
             }
           }}
           className="w-4 h-4 accent-[#fa5800]"
@@ -1462,12 +1470,6 @@ setNewClient({
         </Button>
       </div>
 
-      {(newClient.projects || []).length === 0 && (
-        <p className="text-xs text-gray-400 italic">
-          Agrega al menos un proyecto para este cliente.
-        </p>
-      )}
-
       {(newClient.projects || []).map((project, index) => (
         <div
           key={index}
@@ -1476,7 +1478,7 @@ setNewClient({
           <Input
             label="Área"
             placeholder="Ej. Finanzas, Operaciones, RRHH"
-            value={project.area}
+            value={project.area || ''}
             onChange={e =>
               setNewClient(prev => ({
                 ...prev,
@@ -1490,7 +1492,7 @@ setNewClient({
           <Input
             label="Nombre del Proyecto"
             placeholder="Ej. Implementación de presupuesto 2026"
-            value={project.projectName}
+            value={project.projectName || ''}
             onChange={e =>
               setNewClient(prev => ({
                 ...prev,
@@ -1516,10 +1518,17 @@ setNewClient({
           </Button>
         </div>
       ))}
+
+      {(newClient.projects || []).length === 0 && (
+        <p className="text-xs text-gray-400 italic">
+          Agrega al menos un proyecto para este cliente.
+        </p>
+      )}
     </div>
   )}
-</div>
-
+</div>                  
+                            
+                            
                             <div className="space-y-2">
                               <div className="flex justify-between items-center">
                                 <label className="text-sm font-medium text-gray-700">Rango de Evaluación</label>
